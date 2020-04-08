@@ -1,0 +1,10 @@
+#Temperature stage data
+#All time points must be included and none can be repeated
+#
+#
+stageName,stageDescription,beginTime,endTime,distribution,parameters
+#Single stage example: 
+#static,Original temp distribution,1,24,normal,4.096 2.381
+pack1,Packing,1,13,normal,4.096 1
+trans2,Transport,14,16,normal,8.096 1
+ret3,Retail,17,24,normal,4.096 2.381
