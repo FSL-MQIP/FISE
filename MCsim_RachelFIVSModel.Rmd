@@ -1,7 +1,7 @@
 ---
 title: "MCsim_RachelFIVSModel"
 author: "Rachel Evanowski, Sarah I. Murphy"
-date: "4/01/2020"
+date: "4/01/2020 - 4/09/2020"
 output: pdf_document
 ---
 
@@ -24,6 +24,7 @@ library(tidyverse)
 library(censReg)
 library(fitdistrplus)
 library(splitstackshape)
+library(rmutil)
 
 ## load functions
 source("UtilityFunctions.R")
@@ -121,6 +122,7 @@ data <- data.frame(lot_id, milk_unit, STorAT, spoilage_type, day, count)
 ## 4. Prepare distributions using input data
 a. Initial contamination: logMPN normal distribution
 b. Frequency of allelic types
+c. Temperature distribution for each stage 
 ```{r}
 ## (a) Initial contamination: logMPN normal distribution
 spore_init_file$log10left <- log10(spore_init_file$left)
@@ -141,12 +143,15 @@ spore_log10MPN_sd <- spore_fit$estimate[2]
 #Here, the "distribution" of ATs are taken directly from the input file by creating a vector of the AT in each of the rows in the the column containing the AT
 AT_freq <- spore_ATfreq_import$ClosestAT 
 
+# (c) See below for temps
+
 ```
 
 ## 5. Sample distributions
 i. Sample distributions
     a. Sample MPN_init from the initial MPN
     b. Sample AT from AT_freq
+    c. Sample temp from Laplace distribution
     
 ```{r}
 # (a) Sample MPN_init from the initial MPN
@@ -172,47 +177,46 @@ for (i in 1:n_sim){
   AT <- c(AT, AT_samp)}
 
 ## (c) #Add temp to dataframe
-# set constant temperature (Note: Rachel, ask Sarah if want to sample from temperature distribution of consumer refrigerators, we did this for the Buffalo MC model)
-data$temp <- 6
-```
+# (i) Sample the temperature distribution # Sarah figure out how to implement Laplace distribution
+temps <- vector()
+for (i in 1:n_sim){
+  temp_samp <- rep(rlaplace(m=4.06, s=2.31), times = n_day*n_units)
+                   temps <- c(temps,temp_samp)} #https://doi.org/10.4315/0362-028X-73.2.312 (source)
 
-iii. Apply intervention and add results from sampling distribution in (i) to dataframe
+# (ii) Set constant temperature (Note: Rachel, ask Sarah if want to sample from temperature distribution of consumer refrigerators, we did this for the Buffalo MC model)
+# data$temp <- 6
+
+```
+ii. Apply intervention and add results from sampling distribution in (i) to dataframe
 ```{r}
 ## (a) Reformat and add initial log10MPN to dataframe
 #First convert spore_MPN_init from half-gallon to mLs
 spore_MPN_init_mL <- spore_MPN_init / 1900
 
-#Apply intervention
-data$spore_MPN_init_mL <- spore_MPN_init_mL
+#Apply intervention in unit of MPN/mL
+data$spore_MPN_init_mL <- spore_MPN_init_mL #No intervention OR if running intervention in unit of log10MPN/mL
 # data$spore_MPN_init_mL <- spore_MPN_init_mL - 0.3066 #Subtract the reduction in CFU for towel intervention
 # data$spore_MPN_init_mL <- spore_MPN_init_mL - 0.0183 #Subtract the reduction in CFU for training intervention
 
 #Also need to remove 0's from the data and replace with detection limit
-data$spore_MPN_init_mL[data$spore_MPN_init_mL<0 ] <- 0
+data$spore_MPN_init_mL[data$spore_MPN_init_mL<=0 ] <- 0
 data$spore_MPN_init_mL[data$spore_MPN_init_mL == 0] <- 0.01;
 
 #Add spore_log10MPN_init to dataframe
-data$spore_log10MPN_init <- log10(spore_MPN_init_mL) 
+data$spore_log10MPN_init_mL <- log10(data$spore_MPN_init_mL) 
+
+#Apply intervention in unit of log10MPN/mL
+# data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL #No intervention
+data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL - 0.22 #Subtract the reduction in log10CFU for intervention
 
 ## (b) Add AT to dataframe column STorAT
 data$STorAT <- AT
+
+## (c) #Add temp to dataframe
+data$temp <- temps
 ```
 
 ## 6. Calculate log10N for each row in dataframe
-* Run simple version 
-```{r}
-# for (i in 1:(n_sim * n_units * n_day)) {
-#   allele_index <- which(spore_growth_import$STorAT == data$STorAT[i])
-#   data$count[i] <-
-#     log10N_func(
-#       data$day[i],
-#       spore_growth_import$lag[allele_index],
-#       spore_growth_import$mumax[allele_index],
-#       data$spore_log10MPN_init[i],
-#       spore_growth_import$LOG10Nmax[allele_index]
-#     )}
-```
-
 ```{r}
 for (i in 1:(n_sim * n_units * n_day)) {
   allele_index <-
@@ -226,7 +230,7 @@ for (i in 1:(n_sim * n_units * n_day)) {
       data$day[i],
       spore_growth_import$lag[allele_index],
       spore_growth_import$mumax[allele_index],
-      data$spore_log10MPN_init[i],
+      data$spore_log10MPN_init_mL[i],
       spore_growth_import$LOG10Nmax[allele_index])}
 ```
 
