@@ -206,8 +206,8 @@ data$spore_MPN_init_mL[data$spore_MPN_init_mL == 0] <- 0.01;
 data$spore_log10MPN_init_mL <- log10(data$spore_MPN_init_mL) 
 
 #Apply intervention in unit of log10MPN/mL
-# data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL #No intervention
-data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL - 0.22 #Subtract the reduction in log10CFU for intervention
+data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL #No intervention
+#data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL - 0.22 #Subtract the reduction in log10CFU for intervention
 
 ## (b) Add AT to dataframe column STorAT
 data$STorAT <- AT
@@ -220,7 +220,7 @@ data$temp <- temps
 ```{r}
 for (i in 1:(n_sim * n_units * n_day)) {
   allele_index <-
-    which(spore_growth_import$rpoBAT == data$STorAT[i]) #Find row in growth parameter data that corresponds to allele sample
+    which(spore_growth_import$STorAT == data$STorAT[i]) #Find row in growth parameter data that corresponds to allele sample
   row <- data[i,]
   prev_row <- getPrevRow(data, row$lot_id, row$milk_unit, row$day)
   update <-
