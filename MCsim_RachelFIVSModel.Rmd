@@ -236,11 +236,11 @@ for (i in 1:(n_sim * n_units * n_day)) {
 
 ## 7. Save results
 ```{r}
-data_original <- data
+data_no_intervention <- data
 # data_towel <- data
 # data_training <- data
 
-save(data_original, file = "data_original.RData")
+save(data_no_intervention, file = "data_no_intervention.RData")
 # save(data_towel, file = "data_towel.RData")
 # save(data_training, file = "data_training.RData")
 
