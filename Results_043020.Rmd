@@ -50,10 +50,10 @@ df_summary_no_intervention <- no_intervention%>%
             sd=sd(count),
             n=length(count))
 # save as .csv
-write.csv(df_exceed20000byDay_intervention, "df_exceed20000byDay_intervention.csv")
-write.csv(df_exceed20000byDay_nointervention, "df_exceed20000byDay_nointervention.csv")
-write.csv(df_summary_intervention, "df_summary_intervention.csv")
-write.csv(df_summary_no_intervention, "df_summary_no_intervention.csv")
+# write.csv(df_exceed20000byDay_intervention, "df_exceed20000byDay_intervention.csv")
+# write.csv(df_exceed20000byDay_nointervention, "df_exceed20000byDay_nointervention.csv")
+# write.csv(df_summary_intervention, "df_summary_intervention.csv")
+# write.csv(df_summary_no_intervention, "df_summary_no_intervention.csv")
 ```
 
 Make df of data by day
