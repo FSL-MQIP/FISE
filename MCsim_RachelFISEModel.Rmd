@@ -178,10 +178,21 @@ for (i in 1:n_sim){
 
 ## (c) #Add temp to dataframe
 # (i) Sample the temperature distribution 
-temps <- vector()
-for (i in 1:n_sim){
-  temp_samp <- rep(rlaplace(m=4.06, s=2.31), times = n_day*n_units)
-                   temps <- c(temps,temp_samp)} #https://doi.org/10.4315/0362-028X-73.2.312 (source)
+##Old version
+# temps <- vector()
+# for (i in 1:n_sim){ 
+#   temp_samp <- rep(rlaplace(m=4.06, s=2.31), times = n_day*n_units)
+#                    temps <- c(temps,temp_samp)} #https://doi.org/10.4315/0362-028X-73.2.312 (source)
+
+temps <- rep(NA, n_sim)
+
+for (i in 1:(n_sim)){
+  number <- rlaplace(1,m=4.06,s=2.31)
+  while (number > 15 | number < -1) {
+    number <- rlaplace(1,m=4.06,s=2.31) #make sure that this cannot be >15 or < -1
+  }
+  temps[i] <- number
+}
 
 # (ii) Set constant temperature (Note: Rachel, ask Sarah if want to sample from temperature distribution of consumer refrigerators, we did this for the Buffalo MC model)
 # data$temp <- 6
