@@ -71,7 +71,7 @@ i. Set important parameters for running the simulation:
 ```{r}
 # (a) n_sim
 # Definition: Number of simulations to run (also referred to as the number of bulk tanks in earlier code; i.e., 1 simulation unit = 1 lot of milk)
-n_sim <- 10 #can use any n_sim for testing code, but need to change to at least 10k when running experiments
+n_sim <- 10000 #can use any n_sim for testing code, but need to change to at least 10k when running experiments
 
 # (b) n_units 
 # Definition: Number of units per lot (currently, half gallon units) 
@@ -194,6 +194,8 @@ for (i in 1:(n_sim)){
   temps[i] <- number
 }
 
+temps_v2 <- rep(temps, each = n_day*n_units) # expand temps so that repeat for n_units over n_day
+
 # (ii) Set constant temperature (Note: Rachel, ask Sarah if want to sample from temperature distribution of consumer refrigerators, we did this for the Buffalo MC model)
 # data$temp <- 6
 
@@ -217,14 +219,14 @@ data$spore_MPN_init_mL[data$spore_MPN_init_mL == 0] <- 0.01;
 data$spore_log10MPN_init_mL <- log10(data$spore_MPN_init_mL) 
 
 #Apply intervention in unit of log10MPN/mL
-data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL #No intervention
-#data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL - 0.22 #Subtract the reduction in log10CFU for intervention
+# data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL #No intervention
+data$spore_log10MPN_init_mL <- data$spore_log10MPN_init_mL - 0.22 #Subtract the reduction in log10CFU for intervention
 
 ## (b) Add AT to dataframe column STorAT
 data$STorAT <- AT
 
 ## (c) #Add temp to dataframe
-data$newT <- temps
+data$newT <- temps_v2
 ```
 
 ## 6. Calculate log10N for each row in dataframe
@@ -254,6 +256,7 @@ df_temp %>%
   unique() -> df_temp
 
 # just determine newLag and newMu here
+# for (i in 1:(n_sim*n_units)){
 for (i in 1:(n_sim*n_units)){
   #Find row in growth parameter data that corresponds to allele sample
  allele_index <-
@@ -271,10 +274,9 @@ for (i in 1:(n_sim*n_units)){
 
 ####
 # make a temporary df for merging
-df_temp2 <- data[c(1,2,5:8)]
-
-# now merge 
-data2 <- merge(df_temp,df_temp2,by=c("lot_id","milk_unit"))
+df_temp2 <- data[c(1:3,5:8)]
+#merge
+data2 <- merge(df_temp2,df_temp,by=c("lot_id","milk_unit","STorAT"))
 
 #now determine count
 for (i in 1:(n_sim *n_units * n_day)){
@@ -282,10 +284,13 @@ for (i in 1:(n_sim *n_units * n_day)){
   allele_index <- which(spore_growth_import$STorAT == data2$STorAT[i]) 
   
   #Calculate the log10N count using our new growth parameters
-  #multiply log10N(data$day[i] by 24 since I did it in hours, not days, and ariel did it in days
+  #multiply log10N(data$day[i] by 24 since I did it in hours, not days, and ariel did it in days`
   data2$count[i] <- log10N_func(data2$day[i], data2$newLag[i],data2$newMu[i],data2$spore_log10MPN_init_mL[i],spore_growth_import$LOG10Nmax[allele_index])
 
 }
+
+data_intervention <- data2
+save(data_intervention, file = "data_intervention.RData")
 ```
 
 ```{r}
@@ -309,13 +314,11 @@ for (i in 1:(n_sim *n_units * n_day)){
 
 ## 7. Save results
 ```{r}
-data_no_intervention <- data
-# data_towel <- data
-# data_training <- data
+data_no_intervention <- data2
+# data_intervention <- data2
 
 save(data_no_intervention, file = "data_no_intervention.RData")
-# save(data_towel, file = "data_towel.RData")
-# save(data_training, file = "data_training.RData")
+# save(data_intervention, file = "data_intervention.RData")
 
 ```
 
