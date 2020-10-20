@@ -1,0 +1,273 @@
+---
+title: "Monte Carlo Simulation Results"
+author: "Mike Phillips"
+date: "3/9/2019 - 4/17/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=12, fig.height=6, fig.align = "center")
+library(grid)
+library(gridExtra)
+library(ggplot2)
+library(knitr)
+library(tidyverse)
+library(scales)
+```
+
+
+##Comparing pre- and post-intervention outcomes.
+********
+###Introduction
+
+This version of the model incorporates a temperature distribution rather than assuming a static temperature. Specifically, the temperature is drawn from a normal distribution with mean of 4.096 and a standard deviation of 2.381.
+
+For this project we model the effect of an interventation on bacterial counts and rate of spoilage. The baseline, pre-intervention model uses the same data and values as published in Buehler's 2018 paper "Psychrotolerant spore-former growth characterization for the development of a dairy spoilage predictive model". For this baseline model, the initial log MPN counts are sampled from a normal distribution with a mean of -0.723.
+
+To simulate the results of the intervention, we apply a .22 log reduction to this distribution and sample using a mean of -0.943. Each model was run for 10,000 iterations. 
+
+Preliminary results follow.
+
+********
+
+```{r echo=FALSE}
+compare_means <- read.csv("compare_means.csv", header=T)
+compare_means %>% spread(type, mean) %>% mutate( Reduction = `Initial MPN` - `Post Intervention`)-> means.wide
+
+kable(means.wide, caption = "Mean Concentration Before and After Intervention Days 14 - 24")
+```
+   
+
+
+```{r echo=FALSE}
+ssc_data <- compare_means
+#ssc_data$Day <- factor(ssc_data$Day, levels = c("DI", "D7", "D10", "D14", "D17", "D21"))
+
+fig_ssc <- ggplot() + geom_bar(aes(y = mean, x = day, fill = type),
+                               data = ssc_data, stat="identity", color="black", 
+                               position = "dodge") +
+  geom_text(data = ssc_data, 
+            aes(x = day, y = mean, group = type, label = round(mean, 2)), 
+            position=position_dodge(width = 1), 
+            vjust=-0.25, size = 4) +
+  #scale_fill_grey() + theme_bw() +
+  scale_fill_grey(start = 0.8, end = 0.0) + theme_bw() +
+  theme(legend.title = element_blank(), legend.position = "right",
+        plot.title = element_text(face = "bold", size = 18,hjust = 0.5),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.x = element_text(size = 14 ),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14),
+        axis.ticks.x.bottom = element_blank())
+
+fig_ssc <- fig_ssc + labs(y = "Mean Bacteria Count (log cfu/ml)", x = "Day" )+
+  scale_x_continuous(breaks=seq(14, 24, 1)) +
+  scale_y_continuous(breaks = seq(0, 5, 1),
+                     limits = c(0, 5), expand = c(0, 0)) +
+  ggtitle("Mean Bacteria Initial and Post-Intervention")
+fig_ssc
+
+```
+
+********
+### Spoilage Analysis
+
+For this we calculate the percentage of half-gallons that have spoiled (log count > 4.3).
+
+
+```{r echo=FALSE}
+compare_spoilage <- read.csv("spoilage.csv", header=T)
+compare_spoilage %>% spread(Type, Percent) %>%
+mutate( `Percent Change` = round(((`Post Intervention` - `Original`) / `Original`) * 100, 1)) ->spoilage.wide
+
+kable(spoilage.wide, caption = "Percentage spoiled by day")
+ssc_data <- compare_spoilage
+fig_ssc <- ggplot() + geom_bar(aes(y = Percent, x = Day, fill = Type),
+                               data = ssc_data, stat="identity", color="black",
+                               position = "dodge") +
+  geom_text(data = ssc_data,
+            aes(x = Day, y = Percent, group = Type, label = round(Percent, 1)),
+            position=position_dodge(width = 1),
+            vjust=-0.25, size = 4) +
+  #scale_fill_grey() + theme_bw() +
+  scale_fill_grey(start = 0.8, end = 0.0) + theme_bw() +
+  theme(legend.title = element_blank(), legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 18,hjust = 0.5),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.x = element_text(size = 14 ),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14),
+        axis.ticks.x.bottom = element_blank())
+
+fig_ssc <- fig_ssc + labs(y = "Percent", x = "" ) +
+  scale_x_continuous(breaks=seq(14, 24, 1)) +
+  scale_y_continuous(breaks = seq(0, 100, 10), labels = dollar_format(suffix = "%", prefix = ""),
+                     limits = c(0, 50)) +
+  ggtitle("Percent of half-gallon samples that have spoiled by day")
+fig_ssc
+
+```
+
+```{r echo=FALSE}
+#ggplot(day14, aes(fill = day14)) + geom_histogram(alpha = 0.5, aes(x = "Log_10 cfu/mL", y = ..density..), binwidth = 0.5, postion = 'identity')
+
+# p1 <- hist(day14$`Constant 6C`)
+# p2 <- hist(day14$Distribution);
+# plot( p1, col=rgb(0.5,0.5,0.5,0.5), xlim=c(-4,10))
+# plot( p2, col=rgb(0.6,0.6,0.6,0.5), xlim=c(-4,10), add=T)
+# summary(day14)
+# fig = ggplot(day14, aes(x = "Log 10 cfu/mL"), condition = day14) + geom_bar(position = "identity", alpha = .8) + scale_fill_manual(values=c("grey20", "grey60")) + theme_bw()
+# 
+# fig
+
+
+#hist(day14$`Constant 6C`, col='blue')
+#hist(day14$Distribution, col='red', add=T)
+#hist(day14$`Constant 6C`, col='blue', add=T)
+#hist(day14$Distribution, col=rgb(1, 0, 0, 0.5), add=T)
+# tall.d14 <- stack(day14)
+# tall.d21 <- stack(day21)
+# tall.d24 <- stack(day24)
+# h1 <- ggplot(tall.d14) + geom_histogram(aes(values,..density..,colour=ind, fill=ind),
+#   bins=10,position="dodge")
+# shared_legend <- get_legend(h1 + theme(legend.position = "bottom"))
+# 
+# h2 <- ggplot(tall.d21) geom_histogram(aes(values,..density..,colour=colnames(), fill=colnames()),
+#   bins=10,position="dodge") + theme(plot.margin = unit(c(6,0,6,0), "pt")) + xlab("")
+# h3 <- ggplot(tall.d24) + geom_histogram(aes(values, ..density.., colour=ind, fill=ind),
+#   bins=10,position="dodge") + theme(plot.margin = unit(c(6,0,6,0), "pt")) + xlab("")
+# 
+# prow <- plot_grid(h1 + theme(legend.position="none"), 
+#                   h2 + theme(legend.position="none"), 
+#                   h3 + theme(legend.position="none"), 
+#                   ncol = 1, 
+#                   align = 'v',
+#                   labels = c('A', 'B', 'C')
+# )
+# 
+# plot_grid(prow, shared_legend, ncol = 1, rel_heights = c(5, .5))
+```
+We can also look at the percentage of half-gallons with  microbial counts above 1,000,000.
+
+*******
+```{r echo=FALSE}
+compare_spoilage <- read.csv("countLog7.csv", header=T)
+compare_spoilage %>% spread(Type, Percent) %>%
+mutate( `Percent Change` = round(((`Post Intervention` - `Original`) / `Original`) * 100, 1)) ->spoilage.wide
+
+kable(spoilage.wide, caption = "Percentage with log count > 7 by day")
+ssc_data <- compare_spoilage
+fig_ssc <- ggplot() + geom_bar(aes(y = Percent, x = Day, fill = Type),
+                               data = ssc_data, stat="identity", color="black",
+                               position = "dodge") +
+  geom_text(data = ssc_data,
+            aes(x = Day, y = Percent, group = Type, label = round(Percent, 2)),
+            position=position_dodge(width = 1),
+            vjust=-0.25, size = 4) +
+  #scale_fill_grey() + theme_bw() +
+  scale_fill_grey(start = 0.8, end = 0.0) + theme_bw() +
+  theme(legend.title = element_blank(), legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 18,hjust = 0.5),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.x = element_text(size = 14 ),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14),
+        axis.ticks.x.bottom = element_blank())
+
+fig_ssc <- fig_ssc + labs(y = "Percent", x = "" ) +
+  scale_x_continuous(breaks=seq(14, 24, 1)) +
+  scale_y_continuous(breaks = seq(0, 100, 10), labels = dollar_format(suffix = "%", prefix = ""),
+                     limits = c(0, 25)) +
+  ggtitle("Percent of half-gallon samples with log count > 7 by day")
+fig_ssc
+
+```
+
+
+### A Closer Look at Days 14 and 21
+The difference for both days 14 and 21 reach the threshold for significance. 
+ 
+ **Day 14** 
+ 
+  * Chi-squared p-value  = 0.001183
+  * Wilcoxon p-value < 2.2e-16
+  * KS test p-value < 2.2e-16
+        
+ **Day 21**
+ 
+  * Chi-squared p-value = 1.455e-09
+  * Wilcoxon p-value =  3.084e-12
+  * KS test  p-value < 2.2e-16
+  
+*********************************************
+
+```{r echo=FALSE}
+day14_data <- read.csv("day14.csv", header = T)
+
+fig_ssc1 <- ggplot(day14_data, aes(x=countWithDist))+
+  geom_histogram(aes(y=..density..,fill=type), binwidth = .2, color="grey80")+
+  facet_grid(type~.)  + theme_bw() +
+  theme(legend.position = "none",
+        plot.title = element_text(face = "bold", size = 18,hjust = 0.5),
+        axis.title.y = element_text(size = 14))
+
+fig_ssc1 <- fig_ssc1 + labs(y = "Density", x = "Log cfu/mL" )+
+  scale_x_continuous(breaks=seq(-4, 8, 1)) +
+  scale_y_continuous(limits = c(0, .25)) +
+  ggtitle("Day 14 Histogram")
+fig_ssc1
+
+fig_ssc2 <- ggplot(day14_data, aes(x = countWithDist, fill = type)) +
+        geom_histogram(aes(y=..density..,fill=type), 
+                       binwidth = .2, alpha = .5, position = "identity") + theme_bw()
+fig_ssc2 <- fig_ssc2 + labs(y = "Density", x = "Log cfu/mL" )+
+  scale_x_continuous(breaks=seq(-4, 8, 1)) +
+  scale_y_continuous(limits = c(0, .25)) +
+  ggtitle("Day 14 Overlay") + theme(legend.position = "bottom")
+fig_ssc2
+```
+
+```{r echo=FALSE}
+##Day 21
+day21_data <- read.csv("day21.csv", header = T)
+
+fig_ssc1 <- ggplot(day21_data, aes(x=countWithDist))+
+  geom_histogram(aes(y=..density..,fill=type), binwidth = .33, color="grey80")+
+  facet_grid(type~.)  + theme_bw() +
+  theme(legend.position = "none",
+        plot.title = element_text(face = "bold", size = 18,hjust = 0.5),
+        axis.title.y = element_text(size = 14))
+
+fig_ssc1 <- fig_ssc1 + labs(y = "Density", x = "Log cfu/mL" )+
+  scale_x_continuous(breaks=seq(-4, 8, 1)) +
+  scale_y_continuous(limits = c(0, .25)) +
+  ggtitle("Day 21 Histogram")
+fig_ssc1
+
+fig_ssc2 <- ggplot(day21_data, aes(x = countWithDist, fill = type)) +
+        geom_histogram(aes(y=..density..,fill=type), 
+                       binwidth = .33, alpha = .5, position = "identity") + theme_bw()
+fig_ssc2 <- fig_ssc2 + labs(y = "Density", x = "Log cfu/mL" )+
+  scale_x_continuous(breaks=seq(-4, 8, 1)) +
+  scale_y_continuous(limits = c(0, .25)) +
+  ggtitle("Day 21 Overlay") + theme(legend.position = "bottom")
+fig_ssc2
+```
+
+
+
+
+```{r pressure, echo=FALSE}
+#grid.newpage()
+#grid.draw(rbind(ggplotGrob(h1), ggplotGrob(h2), ggplotGrob(h3), size = "last"))
+```
+
+
